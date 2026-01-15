@@ -5,6 +5,7 @@ from torch import mode
 from maze import *
 from collections import defaultdict
 from minigrid.envs.fourrooms import FourRoomsEnv
+import pandas as pd
 
 
 def epsilon_greedy_policy(state, Q, epsilon,n_actions):
@@ -33,17 +34,19 @@ maze_env = gym.make("MiniGrid-FourRooms-v0", render_mode="rgb_array", max_steps=
 # Paramètres SARSA
 alpha = 0.1    # Taux d'apprentissage
 gamma = 0.9    # Facteur d'atténuation
-epsilon = 0.2 # Probabilité d'exploration
+epsilon = 0.1 # Probabilité d'exploration
 epsilon_min = 0.05
-episodes = 1000
-epsilon_decay = (epsilon - epsilon_min) / episodes  # Décroissance de epsilon sur les épisodes
+episodes = 2000
+epsilon_decay = 0#(epsilon - epsilon_min) / episodes  # Décroissance de epsilon sur les épisodes
 n_actions = 3
+penalite = 0.02
 
 num_target=0
 
 # Initialiser la table Q
 Q=defaultdict(lambda: np.zeros(n_actions))
 rewards_per_episode = []
+step_per_episode = []
 success_rate = 0
 seed = 42
 visit_counts = defaultdict(int)
@@ -90,7 +93,7 @@ for episode in range(episodes):
         state = next_state
         
 
-
+    step_per_episode.append(step)
     rewards_per_episode.append(total_reward)
     if terminated: 
         success_rate+=1 
@@ -208,15 +211,23 @@ def plot_map_visits():
     plt.show()
 
 
-def plot_rewards():
-    plt.figure(figsize=(12, 6))
-    plt.plot(rewards_per_episode, label='Récompense par épisode')
-    plt.xlabel('Épisode')
-    plt.ylabel('Récompense')
-    plt.title('Récompense par épisode au fil du temps')
-    plt.legend()
-    plt.grid()
-    plt.show()
+def plot_rewards(axe):
+    axe.plot(rewards_per_episode, label='Récompense par épisode')
+    smoothed = pd.Series(rewards_per_episode).ewm(span=50).mean()
+    axe.plot(smoothed, label='Moyenne mobile', color='red')
+    axe.set_xlabel('Épisode')
+    axe.set_ylabel('Récompense')
+    axe.set_title('Récompense par épisode au fil du temps')
+    
+
+def plot_steps(axe):
+    axe.plot(step_per_episode, label='Nombre de pas par épisode', color='orange')
+    smoothed = pd.Series(step_per_episode).ewm(span=50).mean()
+    axe.plot(smoothed, label='Moyenne mobile', color='red')
+    axe.set_xlabel('Épisode')
+    axe.set_ylabel('Nombre de pas')
+    axe.set_title('Nombre de pas par épisode au fil du temps')
+
 
 
 # Utilisation
