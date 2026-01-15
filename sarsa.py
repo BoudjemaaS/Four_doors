@@ -25,7 +25,7 @@ def epsilon_greedy_policy(state, Q, epsilon,n_actions):
 
 
 
-maze_env = gym.make("MiniGrid-FourRooms-v0", render_mode="rgb_array", max_steps=1500)
+
 #maze_env = FourRoomsEnv(9, max_steps=500, render_mode="rgb_array")
 
 # =========================================================================================
@@ -37,10 +37,10 @@ gamma = 0.9    # Facteur d'atténuation
 epsilon = 0.1 # Probabilité d'exploration
 epsilon_min = 0.05
 episodes = 1000
-epsilon_decay = 0#(epsilon - epsilon_min) / episodes  # Décroissance de epsilon sur les épisodes
+epsilon_decay = (epsilon - epsilon_min) / episodes  # Décroissance de epsilon sur les épisodes
 n_actions = 3
 penalite = 0.02
-
+max_steps = 1500
 num_target=0
 
 # Initialiser la table Q
@@ -51,7 +51,7 @@ success_rate = 0
 seed = 42
 visit_counts = defaultdict(int)
 
-
+maze_env = gym.make("MiniGrid-FourRooms-v0", render_mode="rgb_array", max_steps=max_steps)
 
 
 # Entraînement avec SARSA
@@ -90,7 +90,9 @@ for episode in range(episodes):
         # Passer à l'état suivant
         state = next_state
         action = next_action
-        total_reward += reward
+        total_reward += reward + (1 - 0.9 * (step / max_steps))
+
+
 
     step_per_episode.append(step)
     rewards_per_episode.append(total_reward)
@@ -239,4 +241,5 @@ plot_steps(axes[1])
 plt.tight_layout() # Évite les chevauchements
 plt.show()
 
+plot_map_visits()
 print("Taux de réussite sur", episodes, "épisodes :", (success_rate / episodes)*100 , "%")

@@ -25,7 +25,7 @@ def epsilon_greedy_policy(state, Q, epsilon,n_actions):
 
 
 
-maze_env = gym.make("MiniGrid-FourRooms-v0", render_mode="rgb_array", max_steps=1500)
+
 #maze_env = FourRoomsEnv(9, max_steps=500, render_mode="rgb_array")
 
 # =========================================================================================
@@ -36,11 +36,11 @@ alpha = 0.1    # Taux d'apprentissage
 gamma = 0.9    # Facteur d'atténuation
 epsilon = 0.1 # Probabilité d'exploration
 epsilon_min = 0.05
-episodes = 2000
-epsilon_decay = 0#(epsilon - epsilon_min) / episodes  # Décroissance de epsilon sur les épisodes
+episodes = 1000
+epsilon_decay = (epsilon - epsilon_min) / episodes  # Décroissance de epsilon sur les épisodes
 n_actions = 3
 penalite = 0.02
-
+max_steps = 1500    
 num_target=0
 
 # Initialiser la table Q
@@ -52,7 +52,7 @@ seed = 42
 visit_counts = defaultdict(int)
 
 
-
+maze_env = gym.make("MiniGrid-FourRooms-v0", render_mode="rgb_array", max_steps=max_steps)
 
 # Entraînement avec SARSA
 for episode in range(episodes):
@@ -82,7 +82,7 @@ for episode in range(episodes):
             last_episode_path.append((next_state[0], next_state[1]))
 
         reward -= 0.02
-        total_reward += reward
+        total_reward += reward + (1 - 0.9 * (step / max_steps))
 
         # Mettre à jour Q selon l'équation SARSA
         best_next_action = np.max(Q[next_state])
@@ -230,7 +230,12 @@ def plot_steps(axe):
 
 
 
-# Utilisation
-plot_optimal_policy()
-plot_rewards()
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 5))
+
+plot_rewards(axes[0])
+plot_steps(axes[1])
+
+plt.tight_layout() # Évite les chevauchements
+plt.show()
+plot_map_visits()
 print("Taux de réussite sur", episodes, "épisodes :", (success_rate / episodes)*100 , "%")
