@@ -87,6 +87,7 @@ for episode in range(episodes):
         # Passer à l'état suivant
         state = next_state
         action = next_action
+        total_reward += reward
 
     rewards_per_episode.append(total_reward)
     if terminated: 
@@ -117,17 +118,16 @@ for state, actions_values in Q.items():
 
 import matplotlib.pyplot as plt
 
-def plot_optimal_policy(env, Q, visit_counts=visit_counts, mode="policy",path=last_episode_path, seed=42):
-    env.reset(seed=seed)
-    img = env.render()
-    width = env.unwrapped.grid.width
-    height = env.unwrapped.grid.height
+def plot_optimal_policy():
+    maze_env.reset(seed=seed)
+    img = maze_env.render()
+    width = maze_env.unwrapped.grid.width
+    height = maze_env.unwrapped.grid.height
     
     plt.figure(figsize=(10, 10))
     
-
     
-    path_x, path_y = zip(*path)
+    path_x, path_y = zip(*last_episode_path)
     # On ajoute 0.5 pour centrer le point dans la case
     path_x = np.array(path_x) + 0.5
     path_y = np.array(path_y) + 0.5
@@ -138,50 +138,83 @@ def plot_optimal_policy(env, Q, visit_counts=visit_counts, mode="policy",path=la
     plt.scatter(path_x[0], path_y[0], color='yellow', s=100, label="Départ", zorder=5)
     plt.scatter(path_x[-1], path_y[-1], color='magenta', s=100, label="Fin", zorder=5)
 
+    plt.imshow(img, extent=[0, width, height, 0])
+    
+    # On crée un dictionnaire pour regrouper les meilleures actions par case (x, y)
+    best_per_cell = {} 
 
-    if mode == "policy":
-        plt.imshow(img, extent=[0, width, height, 0])
+    for state, values in Q.items():
+        x, y, d = state
+        max_q_for_this_state = np.max(values)
         
-        # On crée un dictionnaire pour regrouper les meilleures actions par case (x, y)
-        best_per_cell = {} 
+        # Si on n'a pas encore de donnée pour cette case ou si cet état est meilleur
+        if (x, y) not in best_per_cell or max_q_for_this_state > best_per_cell[(x, y)][0]:
+            best_per_cell[(x, y)] = (max_q_for_this_state, np.argmax(values), d)
 
-        for state, values in Q.items():
-            x, y, d = state
-            max_q_for_this_state = np.max(values)
-            
-            # Si on n'a pas encore de donnée pour cette case ou si cet état est meilleur
-            if (x, y) not in best_per_cell or max_q_for_this_state > best_per_cell[(x, y)][0]:
-                best_per_cell[(x, y)] = (max_q_for_this_state, np.argmax(values), d)
-
-        # On dessine uniquement le meilleur état trouvé pour chaque case
-        for (x, y), (q_val, action, direction) in best_per_cell.items():
-            if q_val != 0: # On n'affiche que si l'agent a appris quelque chose
-                if action == 2: # AVANCER
-                    dx, dy = 0, 0
-                    if direction == 0: dx = 0.4  # Droite
-                    elif direction == 1: dy = 0.4  # Bas
-                    elif direction == 2: dx = -0.4 # Gauche
-                    elif direction == 3: dy = -0.4 # Haut
-                    plt.arrow(x + 0.5, y + 0.5, dx, dy, head_width=0.2, color='red', alpha=0.8)
-                else: # ROTATION
-                    color = 'blue' if action == 0 else 'green'
-                    plt.plot(x + 0.5, y + 0.5, marker='o', color=color, markersize=6)
-        
-        plt.title("Meilleure Action par Case (Basée sur la plus haute valeur Q)")
-
-    elif mode == "visits":
-        # ... (reste du code inchangé pour les visites) ...
-        visit_matrix = np.zeros((height, width))
-        for (x, y), count in visit_counts.items():
-            visit_matrix[y, x] = count
-        plt.imshow(img, extent=[0, width, height, 0], alpha=0.3)
-        im = plt.imshow(visit_matrix, cmap='YlOrRd', extent=[0, width, height, 0], alpha=0.7)
-        plt.colorbar(im, label="Nombre de visites")
-        plt.title("Carte de chaleur des visites")
+    # On dessine uniquement le meilleur état trouvé pour chaque case
+    for (x, y), (q_val, action, direction) in best_per_cell.items():
+        if q_val != 0: # On n'affiche que si l'agent a appris quelque chose
+            if action == 2: # AVANCER
+                dx, dy = 0, 0
+                if direction == 0: dx = 0.4  # Droite
+                elif direction == 1: dy = 0.4  # Bas
+                elif direction == 2: dx = -0.4 # Gauche
+                elif direction == 3: dy = -0.4 # Haut
+                plt.arrow(x + 0.5, y + 0.5, dx, dy, head_width=0.2, color='red', alpha=0.8)
+            else: # ROTATION
+                color = 'blue' if action == 0 else 'green'
+                plt.plot(x + 0.5, y + 0.5, marker='o', color=color, markersize=6)
+    
+    plt.title("Meilleure Action par Case (Basée sur la plus haute valeur Q)")
 
     plt.axis('off')
     plt.show()
 
+
+
+def plot_map_visits():
+
+    maze_env.reset(seed=seed)
+    img = maze_env.render()
+    width = maze_env.unwrapped.grid.width
+    height = maze_env.unwrapped.grid.height
+    
+    plt.figure(figsize=(10, 10))
+    
+    path_x, path_y = zip(*last_episode_path)
+    # On ajoute 0.5 pour centrer le point dans la case
+    path_x = np.array(path_x) + 0.5
+    path_y = np.array(path_y) + 0.5
+    
+    # Dessiner la ligne du chemin
+    plt.plot(path_x, path_y, color='cyan', linewidth=2, label="Chemin de l'agent", alpha=0.8)
+    # Marquer le départ et l'arrivée
+    plt.scatter(path_x[0], path_y[0], color='yellow', s=100, label="Départ", zorder=5)
+    plt.scatter(path_x[-1], path_y[-1], color='magenta', s=100, label="Fin", zorder=5)
+    
+    visit_matrix = np.zeros((height, width))
+    for (x, y), count in visit_counts.items():
+        visit_matrix[y, x] = count
+
+    plt.imshow(img, extent=[0, width, height, 0], alpha=0.3)
+    im = plt.imshow(visit_matrix, cmap='YlOrRd', extent=[0, width, height, 0], alpha=0.7)
+    plt.colorbar(im, label="Nombre de visites")
+    plt.title("Carte de chaleur des visites")
+    plt.axis('off')
+    plt.show()
+
+
+def plot_rewards():
+    plt.figure(figsize=(12, 6))
+    plt.plot(rewards_per_episode, label='Récompense par épisode')
+    plt.xlabel('Épisode')
+    plt.ylabel('Récompense')
+    plt.title('Récompense par épisode au fil du temps')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
 # Utilisation
-plot_optimal_policy(maze_env, Q,mode="visits")
+plot_rewards()
+plot_optimal_policy()
 print("Taux de réussite sur", episodes, "épisodes :", (success_rate / episodes)*100 , "%")
